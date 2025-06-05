@@ -552,9 +552,71 @@ function PriceTable({ category, t }: { category: PriceCategory, t: (text: string
     );
 }
 
-const App: React.FC = () => {
-    const [language, setLanguage] = useState<Language>('ru');
-    const [translatedData, setTranslatedData] = useState<ParsedData | null>(null);
+// Статические переводы для китайского языка
+const chineseTranslations: Record<string, string> = {
+  "прайс-лист компании ООО \"C-ONE AUTO\" (C-ONE 001 Карго)": "C-ONE AUTO公司价目表 (C-ONE 001 货运)",
+  "Обратите внимание, что в прайсах указаны цены в /кг": "请注意，价格表中的价格以/公斤为单位",
+  "для большинства категорий плотности, но для категории \"Менее100кг/м3\" цена указана в /м³,": "对于大多数密度类别，但对于\"小于100公斤/立方米\"类别，价格以/立方米为单位",
+  "Единая таблица прайс-листов ООО \"C-ONE AUTO\" (C-ONE 001 Карго)": "C-ONE AUTO有限责任公司统一价目表（C-ONE 001 货运）",
+  "Оборудование/освещение/мебель/посуда/строит, материалы": "设备/照明/家具/餐具/建筑材料",
+  "Автозапчасти (Экспресс-линия \"Северный Синьцзян\")": "汽车零部件（\"北疆快线\"）",
+  "Единичные категории (Экспресс-линия \"Северный Синьцзян\" (для единичных категорий грузов))": "单一类别（\"北疆快线\"（适用于单一货物类别））",
+  "Багаж/косметика/аксессуары для моб,тел (Шляпы спец, линия)": "行李/化妆品/手机配件（帽子专线）",
+  "Малая бытовая техника (Экспресс-линия \"Северный Синьцзян\" (для малой бытовой техники))": "小家电（\"北疆快线\"（适用于小家电））",
+  "Северная специальная линия инструментов": "北方工具专线",
+  "Основные условия": "基本条件",
+  "Калькулятор стоимости": "成本计算器",
+  "Категория товара:": "商品类别：",
+  "Город назначения:": "目的地城市：",
+  "Тип цены:": "价格类型：",
+  "Вес (кг):": "重量（公斤）：",
+  "Объем (м³):": "体积（立方米）：",
+  "Рассчитать": "计算",
+  "Расчетная плотность:": "计算密度：",
+  "Ориентировочная стоимость:": "估计成本：",
+  "кг/м³": "公斤/立方米",
+  "Москва": "莫斯科",
+  "Алматы": "阿拉木图",
+  "Цена 1": "价格 1",
+  "Цена 2": "价格 2",
+  "№": "编号",
+  "Плотность, кг/м³": "密度（公斤/立方米）",
+  "Цена 1 Москва ($)": "莫斯科价格 1（$）",
+  "Цена 2 Москва ($)": "莫斯科价格 2（$）",
+  "Сроки доставки Москва (дни)": "莫斯科交货期（天）",
+  "Цена 1 Алматы ($)": "阿拉木图价格 1（$）",
+  "Цена 2 Алматы ($)": "阿拉木图价格 2（$）",
+  "Сроки доставки Алматы (дни)": "阿拉木图交货期（天）",
+  "Специальные цены": "特殊价格",
+  "Менее 100": "低于 100",
+  "400 и выше": "400及以上",
+  "Загрузка данных...": "加载数据...",
+  "Русский": "俄语",
+  "中文": "中文",
+  "Пожалуйста, введите корректный вес (больше 0).": "请输入有效的重量（大于0）。",
+  "Категория не найдена.": "未找到类别。",
+  "Пожалуйста, введите корректный объем (больше 0) для расчета.": "请输入有效的体积（大于0）进行计算。",
+  "Цена за м³ для": "每立方米价格",
+  "не найдена в категории": "在类别中未找到",
+  "Тариф для плотности менее 100 кг/м³ не найден в выбранной категории.": "所选类别中未找到密度低于100公斤/立方米的费率。",
+  "Цена за кг для плотности": "密度的每公斤价格",
+  "недействительна.": "无效。",
+  "Не удалось найти подходящий тариф. Проверьте плотность груза": "无法找到合适的费率。请检查货物密度",
+  "или введенные данные.": "或输入的数据。",
+  "Не удалось определить тариф. Пожалуйста, проверьте введенные данные.": "无法确定费率。请检查输入的数据。",
+  "Не удалось рассчитать плотность. Введите корректный объем.": "无法计算密度。请输入有效的体积。",
+  "Не удалось рассчитать стоимость. Проверьте введенные данные и выбранные опции.": "无法计算成本。请检查输入的数据和选择的选项。",
+  "например, 100": "例如，100",
+  "например, 0.5": "例如，0.5"
+};
+
+interface AppProps {
+  defaultLanguage?: Language;
+}
+
+export const App: React.FC<AppProps> = ({ defaultLanguage }) => {
+    const [language, setLanguage] = useState<Language>(defaultLanguage || 'ru');
+    const [translatedData, setTranslatedData] = useState<Record<string, string>>(chineseTranslations);
     const [parsedData, setParsedData] = useState<ParsedData | null>(null);
     const [translating, setTranslating] = useState<boolean>(false);
 
@@ -566,7 +628,7 @@ const App: React.FC = () => {
         if (language === 'ru' || !text || typeof text !== 'string' || text.trim() === '-' || !isNaN(parseFloat(text.replace(',', '.')))) {
             return text;
         }
-        return translatedData?.[text] || text; 
+        return translatedData[text] || text; 
     }, [language, translatedData]);
 
     const collectTranslatableTexts = useCallback((data: ParsedData): string[] => {
@@ -693,8 +755,18 @@ const App: React.FC = () => {
                     {effectiveDateTitle && <p className="effective-date">{effectiveDateTitle.split('\n').map((line, i) => <React.Fragment key={i}>{t(line)}<br/></React.Fragment>)}</p>}
                 </div>
                 <div className="language-selector">
-                    <a href="index.html" className={language === 'ru' ? 'language-link active' : 'language-link'}>Русский</a>
-                    <a href="chinese.html" className={language === 'zh' ? 'language-link active' : 'language-link'}>中文</a>
+                    <button 
+                        className={language === 'ru' ? 'language-link active' : 'language-link'}
+                        onClick={() => changeLanguage('ru')}
+                    >
+                        Русский
+                    </button>
+                    <button 
+                        className={language === 'zh' ? 'language-link active' : 'language-link'}
+                        onClick={() => changeLanguage('zh')}
+                    >
+                        中文
+                    </button>
                 </div>
             </header>
 
@@ -724,8 +796,17 @@ const App: React.FC = () => {
     );
 };
 
+// Добавляем глобальную декларацию для window.defaultLanguage
+declare global {
+  interface Window {
+    defaultLanguage?: string;
+  }
+}
+
 const container = document.getElementById('root');
 if (container) {
     const root = createRoot(container);
-    root.render(<App />);
+    // Проверяем, установлен ли язык по умолчанию через window
+    const defaultLang = (window.defaultLanguage === 'zh') ? 'zh' : 'ru';
+    root.render(<App defaultLanguage={defaultLang as Language} />);
 }
