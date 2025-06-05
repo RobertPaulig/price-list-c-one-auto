@@ -621,7 +621,7 @@ const App: React.FC = () => {
     return (
         <>
             <header>
-                <img src="logo.jpg" alt="C-ONE AUTO Logo" className="logo-img"/>
+                <img src="/logo.jpg" alt="C-ONE AUTO Logo" className="logo-img"/>
                 <div>
                     <h1>{mainTitle.split('\n').map((line, i) => <React.Fragment key={i}>{t(line)}<br/></React.Fragment>)}</h1>
                     {priceNote && <p className="price-note">{t(priceNote)}</p>}

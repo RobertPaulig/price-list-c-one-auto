@@ -1,0 +1,15 @@
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[[redirects]]
+  from = "/chinese.html"
+  to = "/index.html"
+  status = 200
+  force = true
+
+# Правило для обработки всех маршрутов (Single Page Application)
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200 

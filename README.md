@@ -1,14 +1,28 @@
-# Run and deploy your AI Studio app
+# Прайс-лист C-ONE AUTO
 
-This contains everything you need to run your app locally.
+Прайс-лист компании C-ONE AUTO с возможностью просмотра на русском и китайском языках.
 
-## Run Locally
+## Установка и запуск
 
-**Prerequisites:**  Node.js
+```bash
+# Установка зависимостей
+npm install
 
+# Запуск локального сервера разработки
+npm run dev
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+# Сборка проекта
+npm run build
+```
+
+## Деплой на Netlify
+
+При деплое на Netlify используются следующие настройки:
+
+- Команда сборки: `npm run build`
+- Публикуемая директория: `dist`
+- Настройки для перенаправления находятся в файле `netlify.toml`
+
+## Статические файлы
+
+Все статические файлы (логотип, изображения) находятся в директории `public` и автоматически копируются в директорию `dist` при сборке.

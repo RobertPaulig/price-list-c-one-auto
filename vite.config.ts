@@ -8,6 +8,15 @@ export default defineConfig(({ mode }) => {
         'process.env.API_KEY': JSON.stringify(''),
         'process.env.GEMINI_API_KEY': JSON.stringify('')
       },
+      build: {
+        rollupOptions: {
+          input: {
+            main: path.resolve(__dirname, 'index.html'),
+            chinese: path.resolve(__dirname, 'chinese.html')
+          }
+        }
+      },
+      publicDir: 'public',
       resolve: {
         alias: {
           '@': path.resolve(__dirname, '.'),
