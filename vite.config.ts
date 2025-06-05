@@ -8,6 +8,7 @@ export default defineConfig(({ mode }) => {
         'process.env.API_KEY': JSON.stringify(''),
         'process.env.GEMINI_API_KEY': JSON.stringify('')
       },
+      base: '/',
       build: {
         rollupOptions: {
           input: {
