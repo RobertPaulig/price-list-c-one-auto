@@ -91,11 +91,79 @@ const chineseTranslations = {
   "中文": "中文"
 };
 
+// Компонент таблицы цен с улучшенным форматированием
+function PriceTable({ category, t }: { category: any, t: (text: string) => string }) {
+    const [highlightedRow, setHighlightedRow] = useState<number | null>(null);
+    
+    return (
+        <div className="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>{t('№')}</th>
+                        <th>{t('Плотность, кг/м³')}</th>
+                        <th>{t('Цена 1 Москва ($)')}</th>
+                        <th>{t('Цена 2 Москва ($)')}</th>
+                        <th>{t('Сроки доставки Москва (дни)')}</th>
+                        <th>{t('Цена 1 Алматы ($)')}</th>
+                        <th>{t('Цена 2 Алматы ($)')}</th>
+                        <th>{t('Сроки доставки Алматы (дни)')}</th>
+                        <th>{t('Специальные цены')}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {category.items.map((item: any, index: number) => {
+                        // Проверяем, содержит ли строка "Менее 100"
+                        const isLessThan100 = item.density.toLowerCase().includes('менее 100');
+                        // Определяем специальные цены для показа
+                        const specialPrices = isLessThan100 
+                            ? `${t('Москва')}: ${item.priceMoscowLessThan100_Type1 || '-'} $/м³; ${t('Алматы')}: ${item.priceAlmatyLessThan100_Type1 || '-'} $/м³`
+                            : '';
+                        
+                        // Определяем специальные цены для показа (Тип 2)
+                        const specialPricesType2 = isLessThan100 && item.priceMoscowLessThan100_Type2 
+                            ? `${t('Москва')}: ${item.priceMoscowLessThan100_Type2 || '-'} $/м³; ${t('Алматы')}: ${item.priceAlmatyLessThan100_Type2 || '-'} $/м³`
+                            : '';
+                            
+                        return (
+                            <tr 
+                                key={item.id}
+                                className={highlightedRow === index ? 'highlighted' : ''}
+                                onMouseEnter={() => setHighlightedRow(index)}
+                                onMouseLeave={() => setHighlightedRow(null)}
+                            >
+                                <td>{item.id}</td>
+                                <td>{t(item.density)}</td>
+                                <td className="numeric">{item.priceMoscow1}</td>
+                                <td className="numeric">{item.priceMoscow2}</td>
+                                <td className="numeric">{item.deliveryMoscow}</td>
+                                <td className="numeric">{item.priceAlmaty1}</td>
+                                <td className="numeric">{item.priceAlmaty2}</td>
+                                <td className="numeric">{item.deliveryAlmaty}</td>
+                                <td>
+                                    {specialPrices}
+                                    {specialPricesType2 && <br />}
+                                    {specialPricesType2}
+                                </td>
+                            </tr>
+                        );
+                    })}
+                </tbody>
+            </table>
+        </div>
+    );
+}
+
 // Специальный компонент для китайской версии
 const ChineseApp: React.FC = () => {
     const [parsedData, setParsedData] = useState(null);
     const [translations, setTranslations] = useState(chineseTranslations);
     const [isLoadingTranslations, setIsLoadingTranslations] = useState(false);
+    
+    // Устанавливаем атрибут lang для правильного отображения шрифтов
+    useEffect(() => {
+        document.documentElement.lang = 'zh';
+    }, []);
     
     useEffect(() => {
         setParsedData(parsePriceData(rawPriceData));
@@ -286,46 +354,9 @@ const ChineseApp: React.FC = () => {
                 {categories.length > 0 && <Calculator categories={categories} />}
 
                 {categories.map((category, index) => (
-                    <section key={index} className="category-section">
-                        <h2>{t(category.name)}</h2>
-                        <div className="table-container">
-                            <table>
-                                <thead>
-                                    <tr>
-                                        <th>{t("№")}</th>
-                                        <th>{t("Плотность (кг/м³)")}</th>
-                                        <th>{t("Цена Москва 1 ($/кг)")}</th>
-                                        <th>{t("Цена Москва 2 ($/кг)")}</th>
-                                        <th>{t("Срок доставки Москва (дни)")}</th>
-                                        <th>{t("Цена Алматы 1 ($/кг)")}</th>
-                                        <th>{t("Цена Алматы 2 ($/кг)")}</th>
-                                        <th>{t("Срок доставки Алматы (дни)")}</th>
-                                        <th>{t("Москва Цена 1 (<100 $/м³)")}</th>
-                                        <th>{t("Алматы Цена 1 (<100 $/м³)")}</th>
-                                        <th>{t("Москва Цена 2 (<100 $/м³)")}</th>
-                                        <th>{t("Алматы Цена 2 (<100 $/м³)")}</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {category.items.map((item, itemIndex) => (
-                                        <tr key={itemIndex}>
-                                            <td>{item.id}</td>
-                                            <td>{t(item.density)}</td>
-                                            <td>{item.priceMoscow1}</td>
-                                            <td>{item.priceMoscow2}</td>
-                                            <td>{item.deliveryMoscow}</td>
-                                            <td>{item.priceAlmaty1}</td>
-                                            <td>{item.priceAlmaty2}</td>
-                                            <td>{item.deliveryAlmaty}</td>
-                                            <td>{item.density.includes("Менее 100") ? item.priceMoscowLessThan100_Type1 : '-'}</td>
-                                            <td>{item.density.includes("Менее 100") ? item.priceAlmatyLessThan100_Type1 : '-'}</td>
-                                            <td>{item.density.includes("Менее 100") ? item.priceMoscowLessThan100_Type2 : '-'}</td>
-                                            <td>{item.density.includes("Менее 100") ? item.priceAlmatyLessThan100_Type2 : '-'}</td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
+                    <section key={index} className="category-section" aria-labelledby={`category-title-${index}`}>
+                        <h2 id={`category-title-${index}`}>{t(category.name)}</h2>
+                        <PriceTable category={category} t={t} />
                     </section>
                 ))}
 

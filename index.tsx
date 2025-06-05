@@ -490,12 +490,73 @@ const Calculator: React.FC<{
     );
 };
 
+function PriceTable({ category, t }: { category: PriceCategory, t: (text: string) => string }) {
+    const [highlightedRow, setHighlightedRow] = useState<number | null>(null);
+    
+    return (
+        <div className="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>{t('№')}</th>
+                        <th>{t('Плотность, кг/м³')}</th>
+                        <th>{t('Цена 1 Москва ($)')}</th>
+                        <th>{t('Цена 2 Москва ($)')}</th>
+                        <th>{t('Сроки доставки Москва (дни)')}</th>
+                        <th>{t('Цена 1 Алматы ($)')}</th>
+                        <th>{t('Цена 2 Алматы ($)')}</th>
+                        <th>{t('Сроки доставки Алматы (дни)')}</th>
+                        <th>{t('Специальные цены')}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {category.items.map((item, index) => {
+                        // Проверяем, содержит ли строка "Менее 100"
+                        const isLessThan100 = item.density.toLowerCase().includes('менее 100');
+                        // Определяем специальные цены для показа
+                        const specialPrices = isLessThan100 
+                            ? `${t('Москва')}: ${item.priceMoscowLessThan100_Type1 || '-'} $/м³; ${t('Алматы')}: ${item.priceAlmatyLessThan100_Type1 || '-'} $/м³`
+                            : '';
+                        
+                        // Определяем специальные цены для показа (Тип 2)
+                        const specialPricesType2 = isLessThan100 && item.priceMoscowLessThan100_Type2 
+                            ? `${t('Москва')}: ${item.priceMoscowLessThan100_Type2 || '-'} $/м³; ${t('Алматы')}: ${item.priceAlmatyLessThan100_Type2 || '-'} $/м³`
+                            : '';
+                            
+                        return (
+                            <tr 
+                                key={item.id}
+                                className={highlightedRow === index ? 'highlighted' : ''}
+                                onMouseEnter={() => setHighlightedRow(index)}
+                                onMouseLeave={() => setHighlightedRow(null)}
+                            >
+                                <td>{item.id}</td>
+                                <td>{item.density}</td>
+                                <td className="numeric">{item.priceMoscow1}</td>
+                                <td className="numeric">{item.priceMoscow2}</td>
+                                <td className="numeric">{item.deliveryMoscow}</td>
+                                <td className="numeric">{item.priceAlmaty1}</td>
+                                <td className="numeric">{item.priceAlmaty2}</td>
+                                <td className="numeric">{item.deliveryAlmaty}</td>
+                                <td>
+                                    {specialPrices}
+                                    {specialPricesType2 && <br />}
+                                    {specialPricesType2}
+                                </td>
+                            </tr>
+                        );
+                    })}
+                </tbody>
+            </table>
+        </div>
+    );
+}
 
 const App: React.FC = () => {
-    const [parsedData, setParsedData] = React.useState<ParsedData | null>(null);
     const [language, setLanguage] = useState<Language>('ru');
-    const [translations, setTranslations] = useState<Translations>({});
-    const [isLoadingTranslations, setIsLoadingTranslations] = useState(false);
+    const [translatedData, setTranslatedData] = useState<ParsedData | null>(null);
+    const [parsedData, setParsedData] = useState<ParsedData | null>(null);
+    const [translating, setTranslating] = useState<boolean>(false);
 
     useEffect(() => {
         setParsedData(parsePriceData(rawPriceData));
@@ -505,8 +566,8 @@ const App: React.FC = () => {
         if (language === 'ru' || !text || typeof text !== 'string' || text.trim() === '-' || !isNaN(parseFloat(text.replace(',', '.')))) {
             return text;
         }
-        return translations[text] || text; 
-    }, [language, translations]);
+        return translatedData?.[text] || text; 
+    }, [language, translatedData]);
 
     const collectTranslatableTexts = useCallback((data: ParsedData): string[] => {
         const texts = new Set<string>();
@@ -574,7 +635,7 @@ const App: React.FC = () => {
     }, []);
 
     const changeLanguage = async (targetLang: Language) => {
-        if (targetLang === language || isLoadingTranslations) return;
+        if (targetLang === language || translating) return;
 
         if (targetLang === 'ru') {
             setLanguage('ru');
@@ -582,14 +643,14 @@ const App: React.FC = () => {
         }
 
         // Switching to Chinese ('zh')
-        setIsLoadingTranslations(true);
+        setTranslating(true);
         if (!parsedData) {
-            setIsLoadingTranslations(false);
+            setTranslating(false);
             return;
         }
 
         const allTextsToTranslate = collectTranslatableTexts(parsedData);
-        const textsNotInCacheForZh = allTextsToTranslate.filter(text => !translations[text]);
+        const textsNotInCacheForZh = allTextsToTranslate.filter(text => !translatedData[text]);
 
         if (textsNotInCacheForZh.length > 0) {
             try {
@@ -599,18 +660,22 @@ const App: React.FC = () => {
                 const resolvedTranslationsArray = await Promise.all(newTranslationsPromises);
                 const newTranslationsObject = resolvedTranslationsArray.reduce((acc, curr) => ({ ...acc, ...curr }), {});
                 
-                setTranslations(prev => ({ ...prev, ...newTranslationsObject }));
+                setTranslatedData(prev => ({ ...prev, ...newTranslationsObject }));
             } catch (error) {
                 console.error("Error fetching translations for Chinese:", error);
                 alert(t("Ошибка при загрузке переводов.")); // Use t()
-                setIsLoadingTranslations(false);
+                setTranslating(false);
                 return; 
             }
         }
         setLanguage('zh');
-        setIsLoadingTranslations(false);
+        setTranslating(false);
     };
 
+    // Set the HTML lang attribute for proper font rendering
+    useEffect(() => {
+        document.documentElement.lang = language;
+    }, [language]);
 
     if (!parsedData) {
         return <div className="loading-message">{t("Загрузка данных...")}</div>;
@@ -639,44 +704,7 @@ const App: React.FC = () => {
                 {categories.map((category, index) => (
                     <section key={index} className="category-section" aria-labelledby={`category-title-${index}`}>
                         <h2 id={`category-title-${index}`}>{t(category.name)}</h2>
-                        <div className="table-container">
-                            <table>
-                                <thead role="rowgroup">
-                                    <tr role="row">
-                                        <th scope="col" role="columnheader">{t("№")}</th>
-                                        <th scope="col" role="columnheader">{t("Плотность (кг/м³)")}</th>
-                                        <th scope="col" role="columnheader">{t("Цена Москва 1 ($/кг)")}</th>
-                                        <th scope="col" role="columnheader">{t("Цена Москва 2 ($/кг)")}</th>
-                                        <th scope="col" role="columnheader">{t("Срок доставки Москва (дни)")}</th>
-                                        <th scope="col" role="columnheader">{t("Цена Алматы 1 ($/кг)")}</th>
-                                        <th scope="col" role="columnheader">{t("Цена Алматы 2 ($/кг)")}</th>
-                                        <th scope="col" role="columnheader">{t("Срок доставки Алматы (дни)")}</th>
-                                        <th scope="col" role="columnheader">{t("Москва Цена 1 (<100 $/м³)")}</th>
-                                        <th scope="col" role="columnheader">{t("Алматы Цена 1 (<100 $/м³)")}</th>
-                                        <th scope="col" role="columnheader">{t("Москва Цена 2 (<100 $/м³)")}</th>
-                                        <th scope="col" role="columnheader">{t("Алматы Цена 2 (<100 $/м³)")}</th>
-                                    </tr>
-                                </thead>
-                                <tbody role="rowgroup">
-                                    {category.items.map((item, itemIndex) => (
-                                        <tr key={itemIndex} role="row">
-                                            <td role="cell">{item.id}</td>
-                                            <td role="cell">{t(item.density)}</td>
-                                            <td role="cell">{item.priceMoscow1}</td>
-                                            <td role="cell">{item.priceMoscow2}</td>
-                                            <td role="cell">{item.deliveryMoscow}</td>
-                                            <td role="cell">{item.priceAlmaty1}</td>
-                                            <td role="cell">{item.priceAlmaty2}</td>
-                                            <td role="cell">{item.deliveryAlmaty}</td>
-                                            <td role="cell">{item.density.includes("Менее 100") ? item.priceMoscowLessThan100_Type1 : '-'}</td>
-                                            <td role="cell">{item.density.includes("Менее 100") ? item.priceAlmatyLessThan100_Type1 : '-'}</td>
-                                            <td role="cell">{item.density.includes("Менее 100") ? item.priceMoscowLessThan100_Type2 : '-'}</td>
-                                            <td role="cell">{item.density.includes("Менее 100") ? item.priceAlmatyLessThan100_Type2 : '-'}</td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
+                        <PriceTable category={category} t={t} />
                     </section>
                 ))}
 
@@ -691,7 +719,7 @@ const App: React.FC = () => {
                     </section>
                 )}
             </main>
-            {isLoadingTranslations && <div className="global-loading-overlay">{t("Загрузка данных...")}</div>}
+            {translating && <div className="global-loading-overlay">{t("Загрузка данных...")}</div>}
         </>
     );
 };
