@@ -628,22 +628,8 @@ const App: React.FC = () => {
                     {effectiveDateTitle && <p className="effective-date">{effectiveDateTitle.split('\n').map((line, i) => <React.Fragment key={i}>{t(line)}<br/></React.Fragment>)}</p>}
                 </div>
                 <div className="language-selector">
-                    <button 
-                        onClick={() => changeLanguage('ru')} 
-                        disabled={language === 'ru' || isLoadingTranslations} 
-                        className={language === 'ru' ? 'active' : ''}
-                        aria-pressed={language === 'ru'}
-                    >
-                        Русский
-                    </button>
-                    <button 
-                        onClick={() => changeLanguage('zh')} 
-                        disabled={language === 'zh' || isLoadingTranslations} 
-                        className={language === 'zh' ? 'active' : ''}
-                        aria-pressed={language === 'zh'}
-                    >
-                        中文
-                    </button>
+                    <a href="index.html" className={language === 'ru' ? 'language-link active' : 'language-link'}>Русский</a>
+                    <a href="chinese.html" className={language === 'zh' ? 'language-link active' : 'language-link'}>中文</a>
                 </div>
             </header>
 
