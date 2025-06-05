@@ -4,14 +4,6 @@
 */
 import React, { useState, useEffect, useCallback } from 'react';
 import { createRoot } from 'react-dom/client';
-import { GoogleGenAI } from "@google/genai";
-
-// Ensure API_KEY is available from environment variables
-const API_KEY = process.env.API_KEY;
-if (!API_KEY) {
-    console.error("API_KEY is not set. Please set the API_KEY environment variable.");
-}
-const ai = new GoogleGenAI({ apiKey: API_KEY });
 
 const rawPriceData = `прайс-лист компании ООО "C-ONE AUTO" (C-ONE 001 Карго)										
 Обратите внимание, что в прайсах указаны цены в /кг 										
@@ -170,22 +162,8 @@ type Language = 'ru' | 'zh';
 type Translations = Record<string, string>;
 
 async function translateTextGemini(text: string, targetLang: Language): Promise<string> {
-    if (!text || typeof text !== 'string' || text.trim() === '-' || !isNaN(parseFloat(text.replace(',', '.')))) {
-        return text;
-    }
-    if (!API_KEY) return text; // No API key, return original
-
-    try {
-        const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash-preview-04-17',
-            contents: `Translate the following Russian text to ${targetLang === 'zh' ? 'Simplified Chinese' : 'Russian'}. Return ONLY the translated text, without any introductory phrases, explanations, or quotation marks around the translation: "${text}"`,
-            // config: { thinkingConfig: { thinkingBudget: 0 } } // Optional: for potentially faster, simpler translations
-        });
-        return response.text.trim();
-    } catch (error) {
-        console.error("Error translating text:", text, error);
-        return text; // Fallback to original text on error
-    }
+    // Просто возвращаем исходный текст, без попыток перевода
+    return text;
 }
 
 function parseLessThan100Prices(info: string): { moscow: string, almaty: string } {
@@ -604,11 +582,6 @@ const App: React.FC = () => {
         }
 
         // Switching to Chinese ('zh')
-        if (!API_KEY) {
-            alert(t("Ключ API для службы перевода не настроен.")); // Use t() for alert if possible
-            return;
-        }
-
         setIsLoadingTranslations(true);
         if (!parsedData) {
             setIsLoadingTranslations(false);
@@ -665,7 +638,7 @@ const App: React.FC = () => {
                     </button>
                     <button 
                         onClick={() => changeLanguage('zh')} 
-                        disabled={language === 'zh' || isLoadingTranslations || !API_KEY} 
+                        disabled={language === 'zh' || isLoadingTranslations} 
                         className={language === 'zh' ? 'active' : ''}
                         aria-pressed={language === 'zh'}
                     >
