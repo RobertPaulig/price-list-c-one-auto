@@ -5,7 +5,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { createRoot } from 'react-dom/client';
 
-const rawPriceData = `прайс-лист компании ООО "C-ONE AUTO" (C-ONE 001 Карго)										
+// Экспортируем переменные и функции для использования в chinese.tsx
+export const rawPriceData = `прайс-лист компании ООО "C-ONE AUTO" (C-ONE 001 Карго)										
 Обратите внимание, что в прайсах указаны цены в /кг 										
 для большинства категорий плотности, но для категории "Менее100кг/м3" цена указана в /м³,										
 Единая таблица прайс-листов ООО "C-ONE AUTO" (C-ONE 001 Карго)										
@@ -166,7 +167,8 @@ async function translateTextGemini(text: string, targetLang: Language): Promise<
     return text;
 }
 
-function parseLessThan100Prices(info: string): { moscow: string, almaty: string } {
+// Экспортируем функцию для использования в chinese.tsx
+export function parseLessThan100Prices(info: string): { moscow: string, almaty: string } {
     const moscowMatch = info.match(/Москва:\s*([0-9.,]+)/);
     const almatyMatch = info.match(/Алматы:\s*([0-9.,]+)/);
     return {
@@ -175,8 +177,7 @@ function parseLessThan100Prices(info: string): { moscow: string, almaty: string 
     };
 }
 
-
-const parsePriceData = (text: string): ParsedData => {
+export const parsePriceData = (text: string): ParsedData => {
     const lines = text.split('\n').map(line => line.trimEnd()).filter(line => line.trim().length > 0);
 
     const mainTitle = lines[0] || "Прайс-лист";
@@ -621,7 +622,7 @@ const App: React.FC = () => {
     return (
         <>
             <header>
-                <img src="/logo.jpg" alt="C-ONE AUTO Logo" className="logo-img"/>
+                <img src="logo.jpg" alt="C-ONE AUTO Logo" className="logo-img"/>
                 <div>
                     <h1>{mainTitle.split('\n').map((line, i) => <React.Fragment key={i}>{t(line)}<br/></React.Fragment>)}</h1>
                     {priceNote && <p className="price-note">{t(priceNote)}</p>}

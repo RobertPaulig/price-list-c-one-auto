@@ -6,7 +6,44 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { createRoot } from 'react-dom/client';
 
 // Импортируем данные из основного файла
-import { rawPriceData, parsePriceData, translateTextGemini } from './index';
+import { rawPriceData, parsePriceData } from './index';
+
+// Определения типов и вспомогательные функции
+type City = "Москва" | "Алматы";
+type PriceOption = "Цена 1" | "Цена 2";
+
+interface DensityRange {
+    min: number;
+    max: number;
+}
+
+function parseDensityString(densityStr: string): DensityRange | null {
+    densityStr = densityStr.trim();
+    if (densityStr.includes("и выше") || densityStr.includes("and above")) { 
+        const min = parseFloat(densityStr.replace(/[^0-9.]/g, ''));
+        return isNaN(min) ? null : { min, max: Infinity };
+    }
+    const parts = densityStr.split('-');
+    if (parts.length === 2) {
+        const min = parseFloat(parts[0]);
+        const max = parseFloat(parts[1]);
+        if (!isNaN(min) && !isNaN(max)) {
+            return { min, max };
+        }
+    }
+    return null;
+}
+
+function getSpecialPricePerM3(item: any, city: City, priceType: PriceOption): number | null {
+    let priceStr: string;
+    if (city === "Москва") {
+        priceStr = priceType === "Цена 1" ? item.priceMoscowLessThan100_Type1 : item.priceMoscowLessThan100_Type2;
+    } else { // Almaty
+        priceStr = priceType === "Цена 1" ? item.priceAlmatyLessThan100_Type1 : item.priceAlmatyLessThan100_Type2;
+    }
+    const price = parseFloat(priceStr);
+    return isNaN(price) ? null : price;
+}
 
 // Статические переводы для китайского языка
 const chineseTranslations = {
@@ -93,8 +130,98 @@ const ChineseApp: React.FC = () => {
         const priceTypeOptions = [{key: "Цена 1", label: t("Цена 1")}, {key: "Цена 2", label: t("Цена 2")}];
 
         const handleCalculate = () => {
-            // Логика расчета идентична оригинальной
-            // Здесь должен быть весь код из оригинального Calculator компонента
+            setError(null);
+            setCalculatedCost(null);
+            setCalculatedDensity(null);
+
+            const numWeight = parseFloat(weight);
+            const numVolume = parseFloat(volume);
+
+            if (isNaN(numWeight) || numWeight <= 0) {
+                setError(t("Пожалуйста, введите корректный вес (больше 0)."));
+                return;
+            }
+            
+            const category = categories.find(c => c.name === selectedCategoryName);
+            if (!category) {
+                setError(t("Категория не найдена."));
+                return;
+            }
+
+            const lessThan100ItemForCheck = category.items.find(item => item.density.includes("Менее 100")); 
+            const needsVolumeForM3 = lessThan100ItemForCheck && 
+                                     (getSpecialPricePerM3(lessThan100ItemForCheck, selectedCityKey, selectedPriceTypeKey) !== null);
+            const needsVolumeForDensity = category.items.some(item => !item.density.includes("Менее 100"));
+
+            if ((needsVolumeForM3 || needsVolumeForDensity) && (isNaN(numVolume) || numVolume <= 0)) {
+                 setError(t("Пожалуйста, введите корректный объем (больше 0) для расчета."));
+                 return;
+            }
+
+            let cost = null;
+            let density = null;
+
+            if (numVolume > 0) { 
+                density = numWeight / numVolume;
+                setCalculatedDensity(parseFloat(density.toFixed(2)));
+            }
+
+            if (density !== null && density < 100 && numVolume > 0) { 
+                const lessThan100Item = category.items.find(item => item.density.includes("Менее 100")); 
+                if (lessThan100Item) {
+                    const pricePerM3 = getSpecialPricePerM3(lessThan100Item, selectedCityKey, selectedPriceTypeKey);
+                    if (pricePerM3 !== null) {
+                        cost = pricePerM3 * numVolume;
+                    } else {
+                        setError(`${t("Цена за м³ для")} "${t(selectedCityKey)}" (${t(selectedPriceTypeKey)}) ${t("не найдена в категории")} "${t("Менее 100")}".`);
+                        return;
+                    }
+                } else {
+                    setError(`${t("Тариф для плотности менее 100 кг/м³ не найден в выбранной категории.")}`);
+                    return;
+                }
+            } else if (density !== null || (!needsVolumeForDensity && !needsVolumeForM3)) { 
+                let foundTier = false;
+                for (const item of category.items) {
+                    if (item.density.includes("Менее 100")) continue; 
+
+                    const range = parseDensityString(item.density); 
+                    if (range && density !== null && density >= range.min && density < range.max) { 
+                        foundTier = true;
+                        let pricePerKgStr;
+                        if (selectedCityKey === "Москва") {
+                            pricePerKgStr = selectedPriceTypeKey === "Цена 1" ? item.priceMoscow1 : item.priceMoscow2;
+                        } else { 
+                            pricePerKgStr = selectedPriceTypeKey === "Цена 1" ? item.priceAlmaty1 : item.priceAlmaty2;
+                        }
+                        
+                        const pricePerKg = parseFloat(pricePerKgStr.replace(',', '.'));
+                        if (!isNaN(pricePerKg) && pricePerKgStr.trim() !== '-') {
+                            cost = pricePerKg * numWeight;
+                        } else {
+                             setError(`${t("Цена за кг для плотности")} ${t(item.density)} (${t(selectedCityKey)}, ${t(selectedPriceTypeKey)}) ${t("недействительна.")}`);
+                            return;
+                        }
+                        break;
+                    }
+                }
+                if (!foundTier && (density !== null)) { 
+                     setError(`${t("Не удалось найти подходящий тариф. Проверьте плотность груза")} (${density?.toFixed(2)} ${t("кг/м³")}) ${t("или введенные данные.")}`);
+                     return;
+                } else if (!foundTier && (needsVolumeForDensity || needsVolumeForM3)) {
+                    setError(t("Не удалось определить тариф. Пожалуйста, проверьте введенные данные."));
+                    return;
+                }
+            } else if (needsVolumeForDensity || needsVolumeForM3) { 
+                 setError(t("Не удалось рассчитать плотность. Введите корректный объем."));
+                 return;
+            }
+
+            if (cost !== null) {
+                setCalculatedCost(parseFloat(cost.toFixed(2)));
+            } else if (!error) { 
+                 setError(t("Не удалось рассчитать стоимость. Проверьте введенные данные и выбранные опции."));
+            }
         };
 
         return (
@@ -144,7 +271,7 @@ const ChineseApp: React.FC = () => {
     return (
         <>
             <header>
-                <img src="/logo.jpg" alt="C-ONE AUTO Logo" className="logo-img"/>
+                <img src="logo.jpg" alt="C-ONE AUTO Logo" className="logo-img"/>
                 <div>
                     <h1>{mainTitle.split('\n').map((line, i) => <React.Fragment key={i}>{t(line)}<br/></React.Fragment>)}</h1>
                     {priceNote && <p className="price-note">{t(priceNote)}</p>}
