@@ -320,8 +320,8 @@ const Calculator: React.FC<{
     const [selectedCategoryName, setSelectedCategoryName] = useState<string>(categories[0]?.name || "");
     const [selectedCityKey, setSelectedCityKey] = useState<City>("Москва"); 
     const [selectedPriceTypeKey, setSelectedPriceTypeKey] = useState<PriceOption>("Цена 1"); 
-    const [weight, setWeight] = useState<string>("");
-    const [volume, setVolume] = useState<string>("");
+    const [weight, setWeight] = useState<string>("1"); // Предустановленное значение 1 кг
+    const [volume, setVolume] = useState<string>("0.01"); // Предустановленное значение 0.01 м³
     const [calculatedCost, setCalculatedCost] = useState<number | null>(null);
     const [calculatedDensity, setCalculatedDensity] = useState<number | null>(null);
     const [error, setError] = useState<string | null>(null);
@@ -329,6 +329,11 @@ const Calculator: React.FC<{
     const cityOptions = [{key: "Москва", label: t("Москва")}, {key: "Алматы", label: t("Алматы")}];
     const priceTypeOptions = [{key: "Цена 1", label: t("Цена 1")}, {key: "Цена 2", label: t("Цена 2")}];
 
+    // Автоматически вычисляем при загрузке
+    useEffect(() => {
+        // Вызываем handleCalculate при монтировании компонента
+        handleCalculate();
+    }, []);
 
     const handleCalculate = () => {
         setError(null);
@@ -435,8 +440,8 @@ const Calculator: React.FC<{
         setCalculatedCost(null);
         setCalculatedDensity(null);
         setError(null);
-        setWeight("");
-        setVolume("");
+        setWeight("1");
+        setVolume("0.01");
     }, [categories, selectedCategoryName]); 
 
     useEffect(() => { 
@@ -607,7 +612,13 @@ const chineseTranslations: Record<string, string> = {
   "Не удалось рассчитать плотность. Введите корректный объем.": "无法计算密度。请输入有效的体积。",
   "Не удалось рассчитать стоимость. Проверьте введенные данные и выбранные опции.": "无法计算成本。请检查输入的数据和选择的选项。",
   "например, 100": "例如，100",
-  "например, 0.5": "例如，0.5"
+  "например, 0.5": "例如，0.5",
+  
+  // Новые переводы для улучшенного интерфейса
+  "Стандартный вид": "标准视图",
+  "Расширенный калькулятор": "高级计算器",
+  "Показать все таблицы": "显示所有表格",
+  "Скрыть все таблицы": "隐藏所有表格"
 };
 
 interface AppProps {
@@ -619,10 +630,57 @@ export const App: React.FC<AppProps> = ({ defaultLanguage }) => {
     const [translatedData, setTranslatedData] = useState<Record<string, string>>(chineseTranslations);
     const [parsedData, setParsedData] = useState<ParsedData | null>(null);
     const [translating, setTranslating] = useState<boolean>(false);
+    
+    // Новые состояния для улучшенного интерфейса
+    const [visibleCategories, setVisibleCategories] = useState<Record<string, boolean>>({});
+    const [allTablesVisible, setAllTablesVisible] = useState<boolean>(false);
 
     useEffect(() => {
         setParsedData(parsePriceData(rawPriceData));
     }, []);
+
+    // Инициализируем состояние видимости категорий при загрузке данных
+    useEffect(() => {
+        if (parsedData) {
+            const initialVisibility: Record<string, boolean> = {};
+            parsedData.categories.forEach(cat => {
+                initialVisibility[cat.name] = false; // По умолчанию все скрыты
+            });
+            setVisibleCategories(initialVisibility);
+        }
+    }, [parsedData]);
+
+    // Функция переключения видимости категории
+    const toggleCategoryVisibility = (categoryName: string) => {
+        setVisibleCategories(prev => ({
+            ...prev,
+            [categoryName]: !prev[categoryName]
+        }));
+    };
+
+    // Функция для показа всех таблиц
+    const showAllTables = () => {
+        if (parsedData) {
+            const allVisible: Record<string, boolean> = {};
+            parsedData.categories.forEach(cat => {
+                allVisible[cat.name] = true;
+            });
+            setVisibleCategories(allVisible);
+            setAllTablesVisible(true);
+        }
+    };
+
+    // Функция для скрытия всех таблиц
+    const hideAllTables = () => {
+        if (parsedData) {
+            const allHidden: Record<string, boolean> = {};
+            parsedData.categories.forEach(cat => {
+                allHidden[cat.name] = false;
+            });
+            setVisibleCategories(allHidden);
+            setAllTablesVisible(false);
+        }
+    };
 
     const t = useCallback((text: string): string => {
         if (language === 'ru' || !text || typeof text !== 'string' || text.trim() === '-' || !isNaN(parseFloat(text.replace(',', '.')))) {
@@ -771,14 +829,38 @@ export const App: React.FC<AppProps> = ({ defaultLanguage }) => {
             </header>
 
             <main>
-                {categories.length > 0 && <Calculator categories={categories} t={t} language={language}/>}
+                <div className="calculator-container">
+                    {categories.length > 0 && <Calculator categories={categories} t={t} language={language} />}
+                </div>
 
-                {categories.map((category, index) => (
-                    <section key={index} className="category-section" aria-labelledby={`category-title-${index}`}>
-                        <h2 id={`category-title-${index}`}>{t(category.name)}</h2>
-                        <PriceTable category={category} t={t} />
-                    </section>
-                ))}
+                <div className="tables-controls">
+                    <button className="table-control-btn" onClick={showAllTables}>
+                        {t("Показать все таблицы")}
+                    </button>
+                    <button className="table-control-btn" onClick={hideAllTables}>
+                        {t("Скрыть все таблицы")}
+                    </button>
+                </div>
+
+                <div className="tables-container">
+                    {categories.map((category, index) => (
+                        <section key={index} className="category-section" aria-labelledby={`category-title-${index}`}>
+                            <div 
+                                className="category-header" 
+                                onClick={() => toggleCategoryVisibility(category.name)}
+                            >
+                                <h2 id={`category-title-${index}`}>{t(category.name)}</h2>
+                                <span className={`toggle-icon ${visibleCategories[category.name] ? 'open' : ''}`}>
+                                    {visibleCategories[category.name] ? '▼' : '►'}
+                                </span>
+                            </div>
+                            
+                            {visibleCategories[category.name] && (
+                                <PriceTable category={category} t={t} />
+                            )}
+                        </section>
+                    ))}
+                </div>
 
                 {conditions.length > 0 && (
                     <section className="conditions-section" aria-labelledby="conditions-title">

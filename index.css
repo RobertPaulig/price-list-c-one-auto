@@ -618,3 +618,133 @@ tbody tr.highlighted {
         font-size: 0.9em;
     }
 }
+
+/* Стили для нового интерфейса с переключаемыми таблицами */
+
+.tables-container {
+    transition: all 0.5s ease;
+}
+
+.calculator-container {
+    transition: all 0.5s ease;
+    position: relative;
+    margin-bottom: 20px;
+}
+
+/* Стили для кнопок управления таблицами */
+.tables-controls {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 20px;
+    gap: 10px;
+}
+
+.table-control-btn {
+    background-color: #e7eef9;
+    color: #0c3884;
+    padding: 10px 20px;
+    border: 1px solid #0c3884;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.95em;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.table-control-btn:hover {
+    background-color: #d0d9e8;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+}
+
+/* Стили для заголовка категории с переключателем */
+.category-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 15px;
+    background-color: #f7f9fd;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border-left: 5px solid #0c3884;
+    margin-bottom: 15px;
+}
+
+.category-header:hover {
+    background-color: #e7eef9;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+.category-header h2 {
+    margin: 0;
+    font-size: 1.4em;
+    color: #0c3884;
+    flex-grow: 1;
+}
+
+/* Убираем стили подчеркивания, так как они теперь применяются к category-header */
+.category-section h2::after {
+    content: none;
+}
+
+/* Стили для иконки переключения */
+.toggle-icon {
+    font-size: 1.2em;
+    color: #0c3884;
+    transition: transform 0.3s ease;
+    display: inline-block;
+    width: 24px;
+    height: 24px;
+    text-align: center;
+    line-height: 24px;
+}
+
+.toggle-icon.open {
+    transform: rotate(0deg);
+}
+
+/* Стили для переходов при скрытии/показе таблиц */
+.table-container {
+    animation: fadeIn 0.5s ease;
+    overflow: hidden;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        max-height: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        max-height: 3000px;
+        transform: translateY(0);
+    }
+}
+
+/* Адаптивные стили для мобильных устройств */
+@media (max-width: 768px) {
+    .tables-controls {
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    .table-control-btn {
+        width: 100%;
+        max-width: 300px;
+    }
+    
+    .category-header {
+        padding: 10px;
+    }
+    
+    .category-header h2 {
+        font-size: 1.2em;
+    }
+}
+
+/* Добавляем переводы для новых элементов интерфейса */
+/* Эти стили будут использоваться, если вы добавите соответствующие переводы в chineseTranslations */
